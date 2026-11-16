@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 业务通知：Android 13+ 需要运行时申请 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <permission android:name="${applicationId}.permission.CLIPBOARD_EVENT"
+        android:protectionLevel="signature" />
+
+    <queries>
+        <package android:name="com.jingdong.app.mall" />
+        <package android:name="com.taobao.taobao" />
+        <package android:name="com.tmall.wireless" />
+        <package android:name="com.sdu.didi.psnger" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".ClipLinkApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.XposedClipLinkRouter">
+
+        <meta-data android:name="xposedmodule" android:value="true" />
+        <meta-data android:name="xposeddescription" android:resource="@string/xposed_description" />
+        <meta-data android:name="xposedminversion" android:value="82" />
+        <meta-data android:name="xposedscope" android:resource="@array/xposed_scope" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <!-- LSPosed 优先查找此入口，即使桌面图标被隐藏也可打开设置。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.INFO" />
+            </intent-filter>
+        </activity>
+
+        <!-- 只切换桌面入口，主界面仍可通过显式组件名恢复。 -->
+        <activity-alias
+            android:name=".LauncherActivity"
+            android:targetActivity=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- 点击通知后的跳板，无 UI，不需要出现在最近任务 -->
+        <activity
+            android:name=".service.OpenLinkActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.XposedClipLinkRouter" />
+
+        <!-- 系统 UID 发送显式事件；其他签名的应用不能调用。关闭监听时禁用组件。 -->
+        <receiver
+            android:name=".service.ClipboardEventReceiver"
+            android:enabled="false"
+            android:exported="true"
+            android:permission="${applicationId}.permission.CLIPBOARD_EVENT" />
+
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+</manifest>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="xposed_description">允许 XposedClipLinkRouter 在后台识别剪贴板链接和口令；作用域仅需系统框架，启用后重启手机。</string>
+    <string-array name="xposed_scope">
+        <item>android</item>
+    </string-array>
+</resources>

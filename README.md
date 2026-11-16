@@ -1,0 +1,110 @@
+# XposedClipLinkRouter
+
+**复制链接或分享口令，轻点通知直达目标应用。**
+
+一个面向 Android 15 及以上版本的 LSPosed 模块，帮助你识别剪贴板中的链接和分享口令，并根据规则打开对应应用或浏览器。
+
+![Android 15+](https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white)
+![LSPosed](https://img.shields.io/badge/Framework-LSPosed-6C5CE7)
+![Kotlin](https://img.shields.io/badge/Language-Kotlin-7F52FF?logo=kotlin&logoColor=white)
+
+[功能特性](#功能特性) · [安装与配置](#安装与配置) · [隐私说明](#隐私说明) · [从源码构建](#从源码构建) · [常见问题](#常见问题)
+
+## 功能特性
+
+- **链接与口令识别**：支持 HTTP(S) 链接、裸域名，以及淘宝、天猫、京东等分享口令。
+- **按规则打开**：使用内置规则或自定义匹配方式、目标应用和打开方式；目标应用不可用时可回退浏览器。
+- **通知确认**：复制后通过通知选择是否跳转，不自动打开第三方应用。
+- **按需后台处理**：系统剪贴板变化时触发识别，无需常驻服务；锁屏时暂停，解锁后检查当前内容。
+- **减少重复提醒**：过滤同一次复制的重复事件和部分微软设备同步组件的重复回写；手机主动再次复制相同内容仍可通知。
+- **灵活设置**：可调整识别文本长度或关闭口令识别。
+
+## 环境要求
+
+| 项目 | 要求 |
+| --- | --- |
+| 系统 | Android 15（API 35）及以上 |
+| 框架 | 与设备系统兼容的 LSPosed，支持传统 Xposed API 和 `deoptimizeMethod` 扩展 |
+| 系统兼容性 | ROM 的剪贴板实现需兼容模块支持的方法签名；后台限制可能影响运行 |
+
+## 安装与配置
+
+1. 安装 [1.0.0 发布包](https://github.com/voxqon/XposedClipLinkRouter/releases/tag/v1.0.0)，或[从源码构建](#从源码构建)。
+2. 在 LSPosed 中启用模块，作用域仅勾选 **系统框架（android）**，然后重启手机。
+3. 打开本应用，授予通知权限，确认“启用路由总开关”和“LSPosed 后台监听”已开启。
+4. 在其他应用复制链接或口令，点击识别通知打开目标应用。
+
+> 部分 ROM 还需允许本应用自启动和后台运行。
+
+## 隐私说明
+
+模块在系统框架中监听剪贴板变化，并向本应用发送不含原文的事件；应用随后读取当前剪贴板并匹配规则。识别结果通知不显示链接或口令原文；为了点击通知后打开目标，原文会随通知关联的系统 `PendingIntent` 暂存。
+
+- 为过滤重复事件，应用在本地保存最多 128 条匹配摘要及相关时间信息，不保存剪贴板原文。
+- 打开记录保存在本地，包含域名或口令标记、短摘要、规则和打开结果等信息，不保存完整链接或口令。
+- 规则、打开记录和设置允许通过 Android 备份或设备迁移；剪贴板去重摘要不在该备份范围内。
+- 不在识别过程的调试日志中记录复制来源应用包名。系统 Hook 安装失败时仍会记录异常以便排查。
+
+## 从源码构建
+
+需要 **JDK 17** 和 **Android SDK Platform 35**。使用 Android Studio 打开项目，或在本机 `local.properties` 中配置 `sdk.dir`，然后运行：
+
+```powershell
+# Windows
+.\gradlew.bat :core:test :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease
+```
+
+```sh
+# macOS / Linux
+./gradlew :core:test :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease
+```
+
+构建产物位于 `app/build/outputs/apk/release/`。Release 默认启用代码和资源压缩；没有本地签名配置时，生成的是未签名 APK，不能直接安装。
+
+<details>
+<summary><strong>配置 Release 签名</strong></summary>
+
+在项目根目录创建本地 `signing.properties`，填写自己的签名信息：
+
+```properties
+storeFile=your-release-key.jks
+storePassword=your-store-password
+keyAlias=your-key-alias
+keyPassword=your-key-password
+```
+
+签名文件和配置已加入 `.gitignore`，请自行妥善保管。覆盖更新已有安装需要使用相同的签名密钥。
+
+</details>
+
+### 项目结构
+
+```text
+app/       Android 界面、系统集成、通知与数据存储
+core/      链接与口令提取、规则匹配、打开及去重策略
+```
+
+单元测试覆盖提取、规则匹配、Hook 边界、去重及部分应用层行为；真机上的 Hook、通知和目标应用跳转仍需单独验证。
+
+## 常见问题
+
+<details>
+<summary><strong>复制后没有出现通知？</strong></summary>
+
+确认模块已启用、作用域为系统框架且设备已重启；检查应用开关、通知权限，以及 ROM 的自启动和后台运行限制。系统“强行停止”应用后，需要重新打开应用才能恢复。
+
+</details>
+
+<details>
+<summary><strong>如何判断系统 Hook 是否正常？</strong></summary>
+
+查看 LSPosed 日志。出现 `clipboard hook unavailable` 时，请检查紧随其后的异常以及 ROM 的剪贴板实现。应用内开关只表示配置状态，不代表 Hook 已成功安装。
+
+</details>
+
+<details>
+<summary><strong>更新后识别行为异常？</strong></summary>
+
+重启手机加载新版系统 Hook。覆盖更新但尚未重启时，旧事件可能在短时间内被重复过滤。
+
+</details>

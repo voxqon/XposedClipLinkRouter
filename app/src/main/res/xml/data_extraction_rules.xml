@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <!-- 仅备份规则、日志和用户设置；权限询问状态与本次启动的剪贴板摘要不跨设备恢复。 -->
+    <cloud-backup>
+        <include domain="database" path="." />
+        <include domain="file" path="datastore/" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="." />
+        <include domain="file" path="datastore/" />
+    </device-transfer>
+</data-extraction-rules>

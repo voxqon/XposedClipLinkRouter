@@ -77,6 +77,47 @@ keyPassword=your-key-password
 
 </details>
 
+### 通过 Git 标签发布
+
+完整设置步骤、Secrets 取值方式和工作流参数见 [GitHub Actions 配置说明](docs/GITHUB_ACTIONS.md)。
+
+仓库管理员先在 GitHub 仓库的 **Settings → Secrets and variables → Actions → New repository secret** 中配置以下 Secrets：
+
+| Secret | 内容 |
+| --- | --- |
+| `RELEASE_KEYSTORE_BASE64` | 本地 `signing.properties` 中 `storeFile` 指向的发布 keystore 文件的单行 Base64 |
+| `RELEASE_STORE_PASSWORD` | 本地 `signing.properties` 中 `storePassword` 的原值 |
+| `RELEASE_KEY_ALIAS` | 本地 `signing.properties` 中 `keyAlias` 的原值 |
+| `RELEASE_KEY_PASSWORD` | 本地 `signing.properties` 中 `keyPassword` 的原值 |
+
+必须使用与已发布版本相同的签名密钥，才能覆盖升级已安装的应用。不要把 keystore、密码或 Base64 内容提交到仓库或贴入日志。Windows PowerShell 中可在可信的个人电脑上将 keystore 编码后直接复制到剪贴板，粘贴到对应 Secret，随后清空剪贴板：
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes('C:\private\release-key.jks')) | Set-Clipboard
+# 在 GitHub 的 Secret 页面粘贴并保存后执行：
+Set-Clipboard -Value ''
+```
+
+请先关闭可能保存剪贴板历史或同步剪贴板的功能，并替换路径为自己的 keystore 路径。也可在私密环境中生成仅当前用户可读的临时文件，粘贴后立即删除，避免在终端打印编码内容。
+
+每次发布前，在 `app/build.gradle.kts` 中将 `versionCode` 更新为**高于所有已发布版本的正整数**，并提交更改。版本号由标签指定，本地默认 `versionName` 仍为 `1.0.0`。例如：
+
+```sh
+git add app/build.gradle.kts
+git commit -m "Prepare release 1.0.1"
+git tag v1.0.1
+git push origin main
+git push origin v1.0.1
+```
+
+正式版示例为 `v1.0.1`，预发布版示例为 `v1.0.2-rc.1`。标签格式为 `v主版本.次版本.修订版本`，可附加符合 SemVer 规则的 `-` 预发布后缀；不支持 `+` 构建元数据。推送标签会启动发布工作流，格式不符的标签会使工作流失败；普通分支推送不会触发发布。预发布后缀会自动设置 GitHub Pre-release。工作流先运行发布脚本回归测试、应用测试、lint 和 Release 构建，校验 APK 签名后才发布。
+
+重跑会更新同名 Release，先以临时名称上传 APK，检查上传状态、大小及 API 返回的 SHA-256（若有），再替换原文件。上传失败时旧 APK 保持可下载；替换过程中改名失败时会尝试恢复原文件名。若 API 故障导致恢复或清理失败，Release 中可能保留 `pending-` 或 `backup-` 开头的 APK，可在确认正式文件后清理。启用了不可变发布（Immutable releases）的 Release 无法替换附件，需要使用新的版本标签发布。
+
+Release 描述包含从上一个版本标签之后到当前标签提交为止的提交标题，按 Git 拓扑顺序从旧到新排列，每条一行；包含合并提交及其标题。上一个版本标签从当前提交的所有祖先（包括当前提交）中选取，仅考虑本工作流接受的正式版和预发布版标签，以父提交跳数最少者为准；距离相同时按 Git 拓扑遍历顺序，同一提交有多个候选标签时按标签字典序选第一个。没有上一个版本标签时列出截至当前标签的全部提交；两个标签指向同一提交时显示“此版本没有新的提交”。
+
+**提交标题会公开显示在 Release 描述中；公开仓库的 Release 对所有人可见。**不要在提交标题中包含密码、个人信息或其他不希望公开的内容。
+
 ### 项目结构
 
 ```text

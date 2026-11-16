@@ -3,6 +3,13 @@
 .idea/
 *.iml
 **/build/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.log
+*.apk
+*.aab
+*.apks
 local.properties
 signing.properties
 *.jks

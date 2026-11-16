@@ -11,6 +11,8 @@ val localSigning = Properties().apply {
     val propertiesFile = rootProject.file("signing.properties")
     if (propertiesFile.isFile) propertiesFile.inputStream().use { load(it) }
 }
+val ciSigningFile = providers.environmentVariable("CLIPLINK_KEYSTORE_FILE").orNull
+val releaseVersionName = providers.environmentVariable("CLIPLINK_VERSION_NAME").orNull
 
 android {
     namespace = "com.github.voxqon.xposed.clipLinkrouter"
@@ -21,16 +23,16 @@ android {
         minSdk = 35
         targetSdk = 35
         versionCode = 6
-        versionName = "1.0.0"
+        versionName = releaseVersionName ?: "1.0.0"
     }
 
     signingConfigs {
-        if (localSigning.isNotEmpty()) {
+        if (ciSigningFile != null || localSigning.isNotEmpty()) {
             create("localRelease") {
-                storeFile = rootProject.file(localSigning.getProperty("storeFile"))
-                storePassword = localSigning.getProperty("storePassword")
-                keyAlias = localSigning.getProperty("keyAlias")
-                keyPassword = localSigning.getProperty("keyPassword")
+                storeFile = rootProject.file(ciSigningFile ?: localSigning.getProperty("storeFile"))
+                storePassword = if (ciSigningFile != null) System.getenv("CLIPLINK_STORE_PASSWORD") else localSigning.getProperty("storePassword")
+                keyAlias = if (ciSigningFile != null) System.getenv("CLIPLINK_KEY_ALIAS") else localSigning.getProperty("keyAlias")
+                keyPassword = if (ciSigningFile != null) System.getenv("CLIPLINK_KEY_PASSWORD") else localSigning.getProperty("keyPassword")
             }
         }
     }
@@ -39,7 +41,7 @@ android {
         release {
             isMinifyEnabled = providers.gradleProperty("cliplink.minify").orNull != "false"
             isShrinkResources = isMinifyEnabled
-            if (localSigning.isNotEmpty()) signingConfig = signingConfigs.getByName("localRelease")
+            if (ciSigningFile != null || localSigning.isNotEmpty()) signingConfig = signingConfigs.getByName("localRelease")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -59,6 +61,15 @@ android {
         // Compress DEX in the APK; Android extracts it during installation.
         dex.useLegacyPackaging = true
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+    }
+}
+
+tasks.register("verifyReleaseConfiguration") {
+    doLast {
+        require((android.defaultConfig.versionCode ?: 0) > 0) { "Release versionCode must be a positive integer" }
+        require(ciSigningFile != null && listOf("CLIPLINK_STORE_PASSWORD", "CLIPLINK_KEY_ALIAS", "CLIPLINK_KEY_PASSWORD").all { !System.getenv(it).isNullOrBlank() }) {
+            "Release signing configuration is incomplete"
+        }
     }
 }
 

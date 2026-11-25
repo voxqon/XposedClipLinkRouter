@@ -42,7 +42,12 @@ abstract class AppDatabase : RoomDatabase() {
         // 保留同库的规则，只删除不再使用的打开记录。
         val REMOVE_OPEN_HISTORY = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("PRAGMA secure_delete = ON")
+                // 此 PRAGMA 会返回一行结果；必须读取游标才会执行设置。
+                db.query("PRAGMA secure_delete = ON").use { cursor ->
+                    check(cursor.moveToFirst() && cursor.getInt(0) == 1) {
+                        "Could not enable SQLite secure_delete before removing open history"
+                    }
+                }
                 db.execSQL("DROP TABLE IF EXISTS logs")
             }
         }

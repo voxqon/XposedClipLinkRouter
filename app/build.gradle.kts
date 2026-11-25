@@ -22,8 +22,8 @@ android {
         applicationId = "com.github.voxqon.xposed.clipLinkrouter"
         minSdk = 35
         targetSdk = 35
-        versionCode = 8
-        versionName = releaseVersionName ?: "2.0.1"
+        versionCode = 9
+        versionName = releaseVersionName ?: "2.0.2"
     }
 
     signingConfigs {

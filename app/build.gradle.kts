@@ -22,8 +22,8 @@ android {
         applicationId = "com.github.voxqon.xposed.clipLinkrouter"
         minSdk = 35
         targetSdk = 35
-        versionCode = 6
-        versionName = releaseVersionName ?: "1.0.0"
+        versionCode = 7
+        versionName = releaseVersionName ?: "2.0.0"
     }
 
     signingConfigs {
@@ -75,8 +75,8 @@ tasks.register("verifyReleaseConfiguration") {
 
 dependencies {
     implementation(project(":core"))
-    // 由 LSPosed 提供运行时实现，不能打进 APK。
-    compileOnly("de.robv.android.xposed:api:82")
+    // 由 Xposed 框架提供运行时实现，不能打进 APK。
+    compileOnly("io.github.libxposed:api:101.0.1")
 
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.activity:activity-compose:1.9.3")

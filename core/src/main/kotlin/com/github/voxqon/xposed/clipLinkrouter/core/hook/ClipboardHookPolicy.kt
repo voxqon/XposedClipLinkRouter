@@ -11,7 +11,7 @@ object ClipboardHookPolicy {
             types.drop(6).all { it == "boolean" }
 
     /** 包名所有权由原系统方法的 checkPackage 验证；这里只限制操作、用户和设备范围。 */
-    fun backgroundUid(args: Array<out Any?>, readOperation: Int, modulePackage: String): Int? {
+    fun backgroundUid(args: List<Any?>, readOperation: Int, modulePackage: String): Int? {
         if (args.size !in 6..9 || args[0] != readOperation || args[1] != modulePackage) return null
         if (args[2] != null && args[2] !is String) return null
         if (args.drop(6).any { it !is Boolean }) return null

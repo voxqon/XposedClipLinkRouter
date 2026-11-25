@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
-    <!-- 仅备份规则、日志和用户设置；权限询问状态与本次启动的剪贴板摘要不跨设备恢复。 -->
+    <!-- 某些设备在 allowBackup=false 时仍支持设备迁移；显式排除应用数据。 -->
     <cloud-backup>
-        <include domain="database" path="." />
-        <include domain="file" path="datastore/" />
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
     </cloud-backup>
     <device-transfer>
-        <include domain="database" path="." />
-        <include domain="file" path="datastore/" />
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
     </device-transfer>
 </data-extraction-rules>

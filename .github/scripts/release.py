@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Tag releases without writing credentials or release notes to the Actions log."""
 import base64
-from collections import deque
 import hashlib
 import json
 import os
@@ -42,40 +41,13 @@ def prepare():
     commit = git("rev-parse", "--verify", "HEAD^{commit}").strip()
     if git("rev-parse", "--verify", "refs/tags/" + tag + "^{commit}").strip() != commit:
         raise SafeError("The checked-out commit does not match the release tag.")
-    tags = git("tag", "--list").decode("utf-8").splitlines()
-    by_commit = {}
-    for candidate in tags:
-        if candidate != tag and valid_tag(candidate):
-            try:
-                target = git("rev-parse", "--verify", "refs/tags/" + candidate + "^{commit}").strip()
-            except subprocess.CalledProcessError:
-                continue
-            by_commit.setdefault(target, []).append(candidate)
-    history = [line.split() for line in git("rev-list", "--topo-order", "--parents", "HEAD").splitlines()]
-    parents = {line[0]: line[1:] for line in history}
-    rank = {line[0]: index for index, line in enumerate(history)}
-    queue = deque([(commit, 0)])
-    seen = {commit}
-    candidates = []
-    best_distance = None
-    while queue:
-        ancestor, distance = queue.popleft()
-        if best_distance is not None and distance > best_distance:
-            break
-        if ancestor in by_commit:
-            best_distance = distance
-            candidates.append(ancestor)
-        for parent in parents.get(ancestor, []):
-            if parent not in seen:
-                seen.add(parent)
-                queue.append((parent, distance + 1))
-    previous = sorted(by_commit[min(candidates, key=rank.get)])[0] if candidates else None
-    print("Previous version tag: " + (previous or "(none)"))
-    revision = previous + "..HEAD" if previous else "HEAD"
-    raw = git("log", "--reverse", "--topo-order", "-z", "--format=%s", revision)
-    subjects = raw.decode("utf-8", errors="replace").split("\0")
-    lines = ["- " + re.sub(r"[\x00-\x1f\x7f]+", " ", subject).strip() for subject in subjects if subject]
-    notes = "\n".join(lines) if lines else "此版本没有新的提交"
+    notes_path = "docs/releases/" + tag + ".md"
+    try:
+        notes = git("show", commit.decode("ascii") + ":" + notes_path).decode("utf-8").strip()
+    except (subprocess.CalledProcessError, UnicodeDecodeError):
+        raise SafeError("Add a UTF-8 release note under docs/releases/ for this tag before publishing.") from None
+    if not notes:
+        raise SafeError("The release note must not be empty.")
     directory = Path(tempfile.mkdtemp(prefix="cliplink-release-", dir=os.environ["RUNNER_TEMP"]))
     try:
         (directory / "notes.md").write_text(notes + "\n", encoding="utf-8")

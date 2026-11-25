@@ -1,5 +1,6 @@
 package com.github.voxqon.xposed.clipLinkrouter.service
 
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -7,18 +8,18 @@ import androidx.core.net.toUri
 import com.github.voxqon.xposed.clipLinkrouter.core.engine.IntentLauncher
 
 /** 在主线程读取剪贴板，并限制读取长度。 */
-class SystemClipboardSource(context: Context, private val textLimit: () -> Int = { 2001 }) {
+class SystemClipboardSource(context: Context, private val textLimit: () -> Int) {
     data class Snapshot(val text: String, val timestamp: Long)
 
     private val clipboard = context.getSystemService(ClipboardManager::class.java)
 
     fun currentSnapshot(): Snapshot? = runCatching {
         val clip = clipboard.primaryClip ?: return null
+        if (clip.description.extras?.getBoolean(ClipDescription.EXTRA_IS_SENSITIVE) == true) return null
         if (clip.itemCount == 0) return null
         val text = clip.getItemAt(0).text?.take(textLimit().coerceAtLeast(1))?.toString() ?: return null
         Snapshot(text, clip.description.timestamp)
     }.getOrNull()
-
 }
 
 object SystemClock {

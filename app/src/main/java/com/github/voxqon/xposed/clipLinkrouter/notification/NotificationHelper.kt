@@ -48,7 +48,7 @@ object NotificationHelper {
 
     fun showMatchNotification(
         context: Context, payload: String, kind: String, platformLabel: String,
-        ruleName: String?, platformHint: String? = null,
+        platformHint: String,
         targetPackage: String? = null,
     ): Boolean {
         if (!canPostNotifications(context)) return false
@@ -70,7 +70,7 @@ object NotificationHelper {
             .setSmallIcon(R.drawable.ic_stat_link)
             .setLargeIcon(largeIcon)
             .setContentTitle("检测到 $platformLabel ${if (kind == KIND_KOULING) "口令" else "链接"}")
-            .setContentText(ruleName?.let { "命中规则：$it，点击打开" } ?: "点击打开")
+            .setContentText("点击打开")
             .setContentIntent(pending).setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setTimeoutAfter(10 * 60_000L)
             .setPriority(NotificationCompat.PRIORITY_HIGH).build()

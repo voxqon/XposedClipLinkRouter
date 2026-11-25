@@ -21,7 +21,6 @@ data class AppSettings(
     val enabled: Boolean = true,
     val backgroundListening: Boolean = true,
     val maxTextLength: Int = ClipLinkConfig.DEFAULT_MAX_TEXT_LENGTH,
-    val logKeepCount: Int = ClipLinkConfig.DEFAULT_LOG_KEEP_COUNT,
     val alwaysFallbackToBrowser: Boolean = true,
     val koulingEnabled: Boolean = true,
 )
@@ -33,7 +32,6 @@ class SettingsRepository internal constructor(private val dataStore: DataStore<P
         val ENABLED = booleanPreferencesKey("enabled")
         val BG_LISTENING = booleanPreferencesKey("background_listening")
         val MAX_TEXT_LENGTH = intPreferencesKey("max_text_length")
-        val LOG_KEEP_COUNT = intPreferencesKey("log_keep_count")
         val ALWAYS_FALLBACK = booleanPreferencesKey("always_fallback_to_browser")
         val KOULING_ENABLED = booleanPreferencesKey("kouling_enabled")
     }
@@ -46,9 +44,6 @@ class SettingsRepository internal constructor(private val dataStore: DataStore<P
             backgroundListening = p[Keys.BG_LISTENING] ?: true,
             maxTextLength = ClipLinkConfig.clampMaxTextLength(
                 p[Keys.MAX_TEXT_LENGTH] ?: ClipLinkConfig.DEFAULT_MAX_TEXT_LENGTH
-            ),
-            logKeepCount = ClipLinkConfig.clampLogKeepCount(
-                p[Keys.LOG_KEEP_COUNT] ?: ClipLinkConfig.DEFAULT_LOG_KEEP_COUNT
             ),
             alwaysFallbackToBrowser = p[Keys.ALWAYS_FALLBACK] ?: true,
             koulingEnabled = p[Keys.KOULING_ENABLED] ?: true,

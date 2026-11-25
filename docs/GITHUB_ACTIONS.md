@@ -59,23 +59,22 @@ Set-Clipboard -Value ''
 | `CLIPLINK_RELEASE_DIR` | 脚本自动创建，用于保存临时签名材料、构建日志、APK 和发布说明；工作流结束时清理 |
 | `versionCode` | `app/build.gradle.kts` 中的整数；每次发布前手动递增，必须高于已发布版本 |
 
-当前源码和 `v1.0.0` 标签的 `versionCode` 均为 `6`。若没有另外发布更高的值，下一版可使用 `7`。Git 标签只决定 `versionName`，不会自动递增 `versionCode`。
+已发布的 `v1.0.0` 的 `versionCode` 为 `6`，`v2.0.0` 将其升为 `7`。Git 标签只决定 CI 的 `versionName`，不会自动递增 `versionCode`。
 
 ## 4. 发布新版本
 
-配置好四个 Secrets 后，在 `app/build.gradle.kts` 中把 `versionCode` 从 `6` 改为 `7`（若已有更高版本，则继续递增），然后执行：
+递增 `app/build.gradle.kts` 中的 `versionCode` 并更新默认 `versionName`。在 `docs/releases/<标签>.md` 写好 UTF-8 更新说明后，提交并推送分支和新标签。例如：
 
 ```sh
-git add app/build.gradle.kts
-git commit -m "Prepare release 1.0.1"
-git push origin main
-git tag v1.0.1
-git push origin v1.0.1
+git add app/build.gradle.kts docs/releases/v2.0.1.md
+git commit -m "Prepare release 2.0.1"
+git tag v2.0.1
+git push origin main refs/tags/v2.0.1
 ```
 
-正式版标签使用 `v1.0.1` 这样的格式；预发布版可以使用 `v1.0.2-rc.1`，工作流会自动标记为 Pre-release。不支持 `+` 构建元数据。推送格式错误的标签会触发工作流，但标签校验会失败。
+正式版标签使用 `v2.0.1` 这样的格式；预发布版可以使用 `v2.0.2-rc.1`，工作流会自动标记为 Pre-release。不支持 `+` 构建元数据。推送格式错误的标签会触发工作流，但标签校验会失败。
 
-在仓库 **Actions → Release** 查看运行结果。成功后可在 **Releases** 中下载 `XposedClipLinkRouter-1.0.1.apk`。Release 描述会公开包含本次版本范围内的提交标题，提交前应检查其中是否含有私密内容。
+在仓库 **Actions → Release** 查看运行结果。成功后在 **Releases** 下载对应的 APK。发布说明仅读取该标签提交中的同名 Markdown，不复制提交标题。说明文件缺失、不是 UTF-8 或为空时，工作流会在构建前停止。
 
 ## 5. 重跑和常见错误
 

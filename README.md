@@ -2,10 +2,10 @@
 
 **复制链接或分享口令，轻点通知直达目标应用。**
 
-一个面向 Android 15 及以上版本的 LSPosed 模块，帮助你识别剪贴板中的链接和分享口令，并根据规则打开对应应用或浏览器。
+一个面向 Android 15 及以上版本的 Xposed 模块，帮助你识别剪贴板中的链接和分享口令，并根据规则打开对应应用或浏览器。
 
 ![Android 15+](https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white)
-![LSPosed](https://img.shields.io/badge/Framework-LSPosed-6C5CE7)
+![Xposed API 101](https://img.shields.io/badge/Xposed_API-101-6C5CE7)
 ![Kotlin](https://img.shields.io/badge/Language-Kotlin-7F52FF?logo=kotlin&logoColor=white)
 
 [功能特性](#功能特性) · [安装与配置](#安装与配置) · [隐私说明](#隐私说明) · [从源码构建](#从源码构建) · [常见问题](#常见问题)
@@ -24,14 +24,14 @@
 | 项目 | 要求 |
 | --- | --- |
 | 系统 | Android 15（API 35）及以上 |
-| 框架 | 与设备系统兼容的 LSPosed，支持传统 Xposed API 和 `deoptimizeMethod` 扩展 |
+| 框架 | 支持现代 Xposed API 101 和静态作用域的框架，例如 Vector 2.2 或更高版本 |
 | 系统兼容性 | ROM 的剪贴板实现需兼容模块支持的方法签名；后台限制可能影响运行 |
 
 ## 安装与配置
 
-1. 安装 [1.0.0 发布包](https://github.com/voxqon/XposedClipLinkRouter/releases/tag/v1.0.0)，或[从源码构建](#从源码构建)。
-2. 在 LSPosed 中启用模块，作用域仅勾选 **系统框架（android）**，然后重启手机。
-3. 打开本应用，授予通知权限，确认“启用路由总开关”和“LSPosed 后台监听”已开启。
+1. 安装 [GitHub Releases](https://github.com/voxqon/XposedClipLinkRouter/releases) 中的 2.0.0 或更高版本，或[从源码构建](#从源码构建)。仍使用旧版框架的设备请保留 1.0.0。
+2. 在框架管理器中启用模块。静态作用域只允许 **系统框架（system）**；如果该项尚未勾选，请勾选，然后重启手机。
+3. 打开本应用，授予通知权限，确认“启用路由总开关”和“Xposed 后台监听”已开启。
 4. 在其他应用复制链接或口令，点击识别通知打开目标应用。
 
 > 部分 ROM 还需允许本应用自启动和后台运行。
@@ -40,10 +40,10 @@
 
 模块在系统框架中监听剪贴板变化，并向本应用发送不含原文的事件；应用随后读取当前剪贴板并匹配规则。识别结果通知不显示链接或口令原文；为了点击通知后打开目标，原文会随通知关联的系统 `PendingIntent` 暂存。
 
+- 跳过已标记为敏感的剪贴板内容；剪贴板读取提示由系统控制。
 - 为过滤重复事件，应用在本地保存最多 128 条匹配摘要及相关时间信息，不保存剪贴板原文。
-- 打开记录保存在本地，包含域名或口令标记、短摘要、规则和打开结果等信息，不保存完整链接或口令。
-- 规则、打开记录和设置允许通过 Android 备份或设备迁移；剪贴板去重摘要不在该备份范围内。
-- 不在识别过程的调试日志中记录复制来源应用包名。系统 Hook 安装失败时仍会记录异常以便排查。
+- 不保存打开记录；从 1.0.0 覆盖升级后，首次启动会删除旧记录并保留已有规则和设置。
+- 应用数据不再纳入 Android 云备份和设备迁移。模块诊断只输出固定信息，不记录剪贴板内容或来源包名。
 
 ## 从源码构建
 
@@ -100,23 +100,20 @@ Set-Clipboard -Value ''
 
 请先关闭可能保存剪贴板历史或同步剪贴板的功能，并替换路径为自己的 keystore 路径。也可在私密环境中生成仅当前用户可读的临时文件，粘贴后立即删除，避免在终端打印编码内容。
 
-每次发布前，在 `app/build.gradle.kts` 中将 `versionCode` 更新为**高于所有已发布版本的正整数**，并提交更改。版本号由标签指定，本地默认 `versionName` 仍为 `1.0.0`。例如：
+每次发布前，在 `app/build.gradle.kts` 中将 `versionCode` 更新为**高于所有已发布版本的正整数**，并提交更改。将本地默认 `versionName` 与标签保持一致，并添加与标签同名的更新说明。例如发布 `v2.0.1`：
 
 ```sh
-git add app/build.gradle.kts
-git commit -m "Prepare release 1.0.1"
-git tag v1.0.1
-git push origin main
-git push origin v1.0.1
+git add app/build.gradle.kts docs/releases/v2.0.1.md
+git commit -m "Prepare release 2.0.1"
+git tag v2.0.1
+git push origin main refs/tags/v2.0.1
 ```
 
-正式版示例为 `v1.0.1`，预发布版示例为 `v1.0.2-rc.1`。标签格式为 `v主版本.次版本.修订版本`，可附加符合 SemVer 规则的 `-` 预发布后缀；不支持 `+` 构建元数据。推送标签会启动发布工作流，格式不符的标签会使工作流失败；普通分支推送不会触发发布。预发布后缀会自动设置 GitHub Pre-release。工作流先运行发布脚本回归测试、应用测试、lint 和 Release 构建，校验 APK 签名后才发布。
+正式版示例为 `v2.0.1`，预发布版示例为 `v2.0.2-rc.1`。标签格式为 `v主版本.次版本.修订版本`，可附加符合 SemVer 规则的 `-` 预发布后缀；不支持 `+` 构建元数据。推送标签会启动发布工作流，格式不符的标签会使工作流失败；普通分支推送不会触发发布。预发布后缀会自动设置 GitHub Pre-release。工作流先运行发布脚本回归测试、应用测试、lint 和 Release 构建，校验 APK 签名后才发布。
 
 重跑会更新同名 Release，先以临时名称上传 APK，检查上传状态、大小及 API 返回的 SHA-256（若有），再替换原文件。上传失败时旧 APK 保持可下载；替换过程中改名失败时会尝试恢复原文件名。若 API 故障导致恢复或清理失败，Release 中可能保留 `pending-` 或 `backup-` 开头的 APK，可在确认正式文件后清理。启用了不可变发布（Immutable releases）的 Release 无法替换附件，需要使用新的版本标签发布。
 
-Release 描述包含从上一个版本标签之后到当前标签提交为止的提交标题，按 Git 拓扑顺序从旧到新排列，每条一行；包含合并提交及其标题。上一个版本标签从当前提交的所有祖先（包括当前提交）中选取，仅考虑本工作流接受的正式版和预发布版标签，以父提交跳数最少者为准；距离相同时按 Git 拓扑遍历顺序，同一提交有多个候选标签时按标签字典序选第一个。没有上一个版本标签时列出截至当前标签的全部提交；两个标签指向同一提交时显示“此版本没有新的提交”。
-
-**提交标题会公开显示在 Release 描述中；公开仓库的 Release 对所有人可见。**不要在提交标题中包含密码、个人信息或其他不希望公开的内容。
+Release 描述使用对应标签提交中的 UTF-8 文件 `docs/releases/<标签>.md`，不会自动附带提交标题。文件缺失或为空时工作流会停止。查看 [2.0.0 更新说明](docs/releases/v2.0.0.md)。
 
 ### 项目结构
 
@@ -139,7 +136,7 @@ core/      链接与口令提取、规则匹配、打开及去重策略
 <details>
 <summary><strong>如何判断系统 Hook 是否正常？</strong></summary>
 
-查看 LSPosed 日志。出现 `clipboard hook unavailable` 时，请检查紧随其后的异常以及 ROM 的剪贴板实现。应用内开关只表示配置状态，不代表 Hook 已成功安装。
+查看框架日志。出现 `clipboard hook unavailable` 时，请检查框架是否支持现代 Xposed API 101，以及 ROM 的剪贴板实现是否兼容。应用内开关只表示配置状态，不代表 Hook 已成功安装。
 
 </details>
 

@@ -288,21 +288,33 @@ class PrepareTests(unittest.TestCase):
         env = (self.directory / "env").read_text(encoding="utf-8").splitlines()[-1]
         return (Path(env.split("=", 1)[1]) / "notes.md").read_text(encoding="utf-8")
 
-    def test_first_release_lists_all_subjects(self):
-        self.commit("Add routing")
-        release.git("tag", "v1.2.3")
-        self.assertEqual(self.notes(), "- Initial commit\n- Add routing\n")
+    def commit_notes(self, contents):
+        notes = self.directory / "docs/releases/v1.2.3.md"
+        notes.parent.mkdir(parents=True, exist_ok=True)
+        notes.write_text(contents, encoding="utf-8")
+        release.git("add", "docs/releases/v1.2.3.md")
+        self.commit("Commit subject must stay out of the release body")
+        return notes
 
-    def test_annotated_previous_tag_limits_notes(self):
-        release.git("tag", "-a", "v1.2.2", "-m", "Previous release")
-        self.commit("Fix routing")
-        release.git("tag", "v1.2.3")
-        self.assertEqual(self.notes(), "- Fix routing\n")
+    def test_uses_curated_notes_from_tag_not_working_tree_or_commit_subject(self):
+        public_notes = "## 更新内容\n\n- 新增路由功能。\n"
+        note_file = self.commit_notes(public_notes)
+        release.git("tag", "-a", "v1.2.3", "-m", "Release 1.2.3")
+        note_file.write_text("Local edits must not be published\n", encoding="utf-8")
+        self.assertEqual(self.notes(), public_notes)
 
-    def test_same_commit_tags_have_no_new_commits(self):
-        release.git("tag", "v1.2.2")
+    def test_missing_release_notes_fails_without_preparing_files(self):
         release.git("tag", "v1.2.3")
-        self.assertEqual(self.notes(), "此版本没有新的提交\n")
+        with self.assertRaisesRegex(release.SafeError, "Add a UTF-8 release note"):
+            release.prepare()
+        self.assertFalse((self.directory / "env").exists())
+
+    def test_empty_release_notes_fails_without_preparing_files(self):
+        self.commit_notes(" \n")
+        release.git("tag", "v1.2.3")
+        with self.assertRaisesRegex(release.SafeError, "must not be empty"):
+            release.prepare()
+        self.assertFalse((self.directory / "env").exists())
 
     def test_invalid_tag_fails_without_preparing_files(self):
         with patch.dict(os.environ, {"GITHUB_REF_NAME": "v1.2.3-01"}):

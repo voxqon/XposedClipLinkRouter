@@ -66,7 +66,6 @@ object LinkExtractor {
             uri.host?.lowercase(Locale.ROOT)?.trimEnd('.') ?: "" else ""
     }.getOrDefault("")
 
-    fun shortHash(url: String, length: Int = 16): String = Hasher.shortHash(url, length)
 }
 
 data class ExtractResult(val firstUrl: String?)

@@ -21,7 +21,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-/** 处理 LSPosed 系统事件，无常驻服务、轮询或唤醒锁。 */
+/** 处理 Xposed 系统事件，无常驻服务、轮询或唤醒锁。 */
 class ClipboardMonitor(private val app: ClipLinkApp) {
     private data class Snapshot(val settings: AppSettings, val rules: List<RuleSpec>)
     @Volatile private var snapshot: Snapshot? = null
@@ -48,7 +48,7 @@ class ClipboardMonitor(private val app: ClipLinkApp) {
     }
 
     /** 广播在读取设置和发出通知之后才完成；后台进程可随时被系统回收。 */
-    suspend fun checkBackground(sourcePackage: String? = null, eventTimestamp: Long = 0L) = processing.withLock {
+    suspend fun checkBackground(sourcePackage: String?, eventTimestamp: Long) = processing.withLock {
         ready.await()
         // 将读取和处理一起串行化；排队事件始终按当前剪贴板版本判断。
         val clip = withContext(Dispatchers.Main.immediate) {
@@ -90,7 +90,7 @@ class ClipboardMonitor(private val app: ClipLinkApp) {
         val notified = withContext(Dispatchers.Main.immediate) {
             // 关闭开关、锁屏或规则已变化时，丢弃在途识别结果。
             snapshot == state && canProcess(state) && NotificationHelper.showMatchNotification(
-                app, payload, kind, platformLabel(rule.platform), rule.name, rule.platform.name,
+                app, payload, kind, platformLabel(rule.platform), rule.platform.name,
                 targetPackage = rule.targetPackage)
         }
         if (notified) {

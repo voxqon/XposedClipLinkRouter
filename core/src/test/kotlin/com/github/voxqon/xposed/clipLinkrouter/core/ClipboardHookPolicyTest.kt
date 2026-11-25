@@ -18,9 +18,9 @@ class ClipboardHookPolicyTest {
         uid: Int = 10_123,
         userId: Int = 0,
         deviceId: Int = 0,
-    ): Array<Any?> = arrayOf(operation, packageName, null, uid, userId, deviceId)
+    ): MutableList<Any?> = mutableListOf(operation, packageName, null, uid, userId, deviceId)
 
-    private fun allowedUid(args: Array<out Any?>) =
+    private fun allowedUid(args: List<Any?>) =
         ClipboardHookPolicy.backgroundUid(args, readOperation, modulePackage)
 
     @Test fun `支持Android15和16的两个访问重载`() {
@@ -36,9 +36,9 @@ class ClipboardHookPolicyTest {
         assertTrue(ClipboardHookPolicy.supportsSignature(signature + List(3) { "boolean" }))
         for (note in listOf(false, true)) {
             for (ignoreAsk in listOf(false, true)) {
-                assertEquals(10_123, allowedUid((request().toList() + listOf(note, ignoreAsk)).toTypedArray()))
+                assertEquals(10_123, allowedUid(request() + listOf(note, ignoreAsk)))
                 for (ignoreDeny in listOf(false, true)) {
-                    assertEquals(10_123, allowedUid((request().toList() + listOf(note, ignoreAsk, ignoreDeny)).toTypedArray()))
+                    assertEquals(10_123, allowedUid(request() + listOf(note, ignoreAsk, ignoreDeny)))
                 }
             }
         }
@@ -84,9 +84,9 @@ class ClipboardHookPolicyTest {
         assertNull(allowedUid(request().also { it[4] = null }))
         assertNull(allowedUid(request().also { it[5] = 0L }))
         assertNull(allowedUid(request() + "false"))
-        assertNull(allowedUid((request().toList() + listOf(true, 1)).toTypedArray()))
-        assertNull(allowedUid((request().toList() + listOf(true, false, null)).toTypedArray()))
-        assertNull(allowedUid((request().toList() + List(4) { true }).toTypedArray()))
-        assertNull(allowedUid(emptyArray()))
+        assertNull(allowedUid(request() + listOf(true, 1)))
+        assertNull(allowedUid(request() + listOf(true, false, null)))
+        assertNull(allowedUid(request() + List(4) { true }))
+        assertNull(allowedUid(emptyList()))
     }
 }

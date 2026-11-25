@@ -9,12 +9,6 @@ enum class MatchType { EXACT_HOST, SUFFIX_HOST, REGEX, KEYWORD, KOULING }
 /** 平台 */
 enum class Platform { JD, TAOBAO, TMALL, DIDI, GENERIC }
 
-/** 打开动作 */
-enum class Action { APP_SCHEME, BROWSER, FALLBACK_BROWSER, IGNORED, FAILED, KOULING_APP }
-
-/** 打开结果 */
-enum class Result { SUCCESS, FAILED, FALLBACK }
-
 /** 内置规则的种子定义 */
 data class BuiltinSeed(
     val key: String,

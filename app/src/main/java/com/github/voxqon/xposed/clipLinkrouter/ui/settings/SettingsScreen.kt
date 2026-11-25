@@ -101,7 +101,6 @@ data class SettingsUiState(
     val loading: Boolean = true,
     val settings: AppSettings = AppSettings(),
     val error: String? = null,
-    val message: String? = null,
 )
 
 class SettingsViewModel(
@@ -137,7 +136,7 @@ class SettingsViewModel(
         }
     }
 
-    fun consumeMessage() = _ui.update { it.copy(message = null, error = null) }
+    fun clearError() = _ui.update { it.copy(error = null) }
 
     companion object {
         fun factory(app: ClipLinkApp) = object : ViewModelProvider.Factory {
@@ -191,8 +190,11 @@ fun SettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(ui.error, ui.message) {
-        (ui.error ?: ui.message)?.let { snackbar.showSnackbar(it); vm.consumeMessage() }
+    LaunchedEffect(ui.error) {
+        ui.error?.let {
+            snackbar.showSnackbar(it)
+            vm.clearError()
+        }
     }
 
     var showModuleHelp by remember { mutableStateOf(false) }
@@ -229,7 +231,7 @@ fun SettingsScreen(
                     enabled = !ui.loading,
                 )
                 SettingSwitchItem(
-                    title = "LSPosed 后台监听",
+                    title = "Xposed 后台监听",
                     subtitle = "接收系统剪贴板事件，关闭后停止识别和通知",
                     checked = ui.settings.backgroundListening,
                     onCheckedChange = { vm.setBackgroundListening(it) },
@@ -333,7 +335,6 @@ fun SettingsScreen(
 
             // Group 6: 使用指南与关于
             SettingsGroup(title = "指南与关于") {
-                // LSPosed Guide Entry
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -359,12 +360,12 @@ fun SettingsScreen(
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(
-                            text = "LSPosed 模块配置说明",
+                            text = "Xposed 模块配置说明",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            text = "作用域设置、重启生效与疑难解答",
+                            text = "静态作用域、重启生效与疑难解答",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -750,7 +751,7 @@ private fun LsposedHelpDialog(onDismiss: () -> Unit) {
                     modifier = Modifier.size(24.dp),
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("LSPosed 模块配置指南", fontWeight = FontWeight.Bold)
+                Text("Xposed 模块配置指南", fontWeight = FontWeight.Bold)
             }
         },
         text = {
@@ -763,12 +764,12 @@ private fun LsposedHelpDialog(onDismiss: () -> Unit) {
                 StepCard(
                     step = "1",
                     title = "启用模块",
-                    desc = "在 LSPosed 管理器中找到 XposedClipLinkRouter 并开启开关。",
+                    desc = "在支持静态作用域的框架管理器（如 Vector）中启用 XposedClipLinkRouter。",
                 )
                 StepCard(
                     step = "2",
-                    title = "勾选作用域",
-                    desc = "作用域只需勾选「系统框架」（android），无需勾选淘宝、京东等第三方应用。",
+                    title = "确认静态作用域",
+                    desc = "模块仅允许作用于「系统框架」；如果该项尚未勾选，请勾选。",
                 )
                 StepCard(
                     step = "3",

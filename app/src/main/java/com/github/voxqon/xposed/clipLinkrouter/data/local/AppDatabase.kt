@@ -4,14 +4,12 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
-import com.github.voxqon.xposed.clipLinkrouter.core.model.Action
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.github.voxqon.xposed.clipLinkrouter.core.model.MatchType
 import com.github.voxqon.xposed.clipLinkrouter.core.model.Platform
-import com.github.voxqon.xposed.clipLinkrouter.core.model.Result
 import com.github.voxqon.xposed.clipLinkrouter.core.model.RuleType
-import com.github.voxqon.xposed.clipLinkrouter.data.local.dao.LogDao
 import com.github.voxqon.xposed.clipLinkrouter.data.local.dao.RuleDao
-import com.github.voxqon.xposed.clipLinkrouter.data.local.entity.LogEntity
 import com.github.voxqon.xposed.clipLinkrouter.data.local.entity.RuleEntity
 
 /** Room 的枚举 <-> String 转换器，避免依赖 ordinal 带来的顺序脆弱性。 */
@@ -27,23 +25,26 @@ class Converters {
     @TypeConverter fun platformToString(v: Platform): String = v.name
     @TypeConverter fun stringToPlatform(v: String): Platform =
         runCatching { Platform.valueOf(v) }.getOrDefault(Platform.GENERIC)
-
-    @TypeConverter fun actionToString(v: Action): String = v.name
-    @TypeConverter fun stringToAction(v: String): Action =
-        runCatching { Action.valueOf(v) }.getOrDefault(Action.BROWSER)
-
-    @TypeConverter fun resultToString(v: Result): String = v.name
-    @TypeConverter fun stringToResult(v: String): Result =
-        runCatching { Result.valueOf(v) }.getOrDefault(Result.FAILED)
 }
 
 @Database(
-    entities = [RuleEntity::class, LogEntity::class],
-    version = 3,
+    entities = [RuleEntity::class],
+    version = 4,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun ruleDao(): RuleDao
-    abstract fun logDao(): LogDao
+
+    companion object {
+        const val NAME = "cliplink.db"
+
+        // 保留同库的规则，只删除不再使用的打开记录。
+        val REMOVE_OPEN_HISTORY = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("PRAGMA secure_delete = ON")
+                db.execSQL("DROP TABLE IF EXISTS logs")
+            }
+        }
+    }
 }

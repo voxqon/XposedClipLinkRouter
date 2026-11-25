@@ -44,10 +44,10 @@ Set-Clipboard -Value ''
 | 参数 | 当前值或来源 |
 | --- | --- |
 | 工作流名称 | `Release` |
-| Runner | `ubuntu-latest` |
+| Runner | GitHub 托管的 `ubuntu-24.04` |
 | JDK | Temurin `17` |
-| Android SDK Platform | `35` |
-| Android Build Tools | `35.0.0` |
+| Android SDK Platform | Runner 预装的 `35`（构建前检查） |
+| Android Build Tools | Runner 预装的 `35.0.0`（用于验签） |
 | Token 权限 | `contents: write` |
 | `GH_TOKEN` | GitHub 自动提供的 `${{ github.token }}` |
 | `CLIPLINK_KEYSTORE_BASE64` | `secrets.RELEASE_KEYSTORE_BASE64` |
@@ -59,20 +59,20 @@ Set-Clipboard -Value ''
 | `CLIPLINK_RELEASE_DIR` | 脚本自动创建，用于保存临时签名材料、构建日志、APK 和发布说明；工作流结束时清理 |
 | `versionCode` | `app/build.gradle.kts` 中的整数；每次发布前手动递增，必须高于已发布版本 |
 
-已发布的 `v1.0.0` 的 `versionCode` 为 `6`，`v2.0.0` 将其升为 `7`。Git 标签只决定 CI 的 `versionName`，不会自动递增 `versionCode`。
+`v1.0.0` 的 `versionCode` 为 `6`，`v2.0.0` 标签为 `7`，`v2.0.1` 为 `8`。Git 标签只决定 CI 的 `versionName`，不会自动递增 `versionCode`。
 
 ## 4. 发布新版本
 
 递增 `app/build.gradle.kts` 中的 `versionCode` 并更新默认 `versionName`。在 `docs/releases/<标签>.md` 写好 UTF-8 更新说明后，提交并推送分支和新标签。例如：
 
 ```sh
-git add app/build.gradle.kts docs/releases/v2.0.1.md
-git commit -m "Prepare release 2.0.1"
-git tag v2.0.1
-git push origin main refs/tags/v2.0.1
+git add app/build.gradle.kts docs/releases/v2.0.2.md
+git commit -m "Prepare release 2.0.2"
+git tag v2.0.2
+git push origin main refs/tags/v2.0.2
 ```
 
-正式版标签使用 `v2.0.1` 这样的格式；预发布版可以使用 `v2.0.2-rc.1`，工作流会自动标记为 Pre-release。不支持 `+` 构建元数据。推送格式错误的标签会触发工作流，但标签校验会失败。
+正式版标签使用 `v2.0.2` 这样的格式；预发布版可以使用 `v2.0.3-rc.1`，工作流会自动标记为 Pre-release。不支持 `+` 构建元数据。推送格式错误的标签会触发工作流，但标签校验会失败。
 
 在仓库 **Actions → Release** 查看运行结果。成功后在 **Releases** 下载对应的 APK。发布说明仅读取该标签提交中的同名 Markdown，不复制提交标题。说明文件缺失、不是 UTF-8 或为空时，工作流会在构建前停止。
 

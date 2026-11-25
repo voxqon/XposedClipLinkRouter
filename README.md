@@ -29,7 +29,7 @@
 
 ## 安装与配置
 
-1. 安装 [GitHub Releases](https://github.com/voxqon/XposedClipLinkRouter/releases) 中的 2.0.0 或更高版本，或[从源码构建](#从源码构建)。仍使用旧版框架的设备请保留 1.0.0。
+1. 安装 [GitHub Releases](https://github.com/voxqon/XposedClipLinkRouter/releases) 中的 2.0.1 或更高版本，或[从源码构建](#从源码构建)。仍使用旧版框架的设备请保留 1.0.0。
 2. 在框架管理器中启用模块。静态作用域只允许 **系统框架（system）**；如果该项尚未勾选，请勾选，然后重启手机。
 3. 打开本应用，授予通知权限，确认“启用路由总开关”和“Xposed 后台监听”已开启。
 4. 在其他应用复制链接或口令，点击识别通知打开目标应用。
@@ -100,20 +100,20 @@ Set-Clipboard -Value ''
 
 请先关闭可能保存剪贴板历史或同步剪贴板的功能，并替换路径为自己的 keystore 路径。也可在私密环境中生成仅当前用户可读的临时文件，粘贴后立即删除，避免在终端打印编码内容。
 
-每次发布前，在 `app/build.gradle.kts` 中将 `versionCode` 更新为**高于所有已发布版本的正整数**，并提交更改。将本地默认 `versionName` 与标签保持一致，并添加与标签同名的更新说明。例如发布 `v2.0.1`：
+每次发布前，在 `app/build.gradle.kts` 中将 `versionCode` 更新为**高于所有已发布版本的正整数**，并提交更改。将本地默认 `versionName` 与标签保持一致，并添加与标签同名的更新说明。例如发布 `v2.0.2`：
 
 ```sh
-git add app/build.gradle.kts docs/releases/v2.0.1.md
-git commit -m "Prepare release 2.0.1"
-git tag v2.0.1
-git push origin main refs/tags/v2.0.1
+git add app/build.gradle.kts docs/releases/v2.0.2.md
+git commit -m "Prepare release 2.0.2"
+git tag v2.0.2
+git push origin main refs/tags/v2.0.2
 ```
 
-正式版示例为 `v2.0.1`，预发布版示例为 `v2.0.2-rc.1`。标签格式为 `v主版本.次版本.修订版本`，可附加符合 SemVer 规则的 `-` 预发布后缀；不支持 `+` 构建元数据。推送标签会启动发布工作流，格式不符的标签会使工作流失败；普通分支推送不会触发发布。预发布后缀会自动设置 GitHub Pre-release。工作流先运行发布脚本回归测试、应用测试、lint 和 Release 构建，校验 APK 签名后才发布。
+正式版示例为 `v2.0.2`，预发布版示例为 `v2.0.3-rc.1`。标签格式为 `v主版本.次版本.修订版本`，可附加符合 SemVer 规则的 `-` 预发布后缀；不支持 `+` 构建元数据。推送标签会启动发布工作流，格式不符的标签会使工作流失败；普通分支推送不会触发发布。预发布后缀会自动设置 GitHub Pre-release。工作流先运行发布脚本回归测试、应用测试、lint 和 Release 构建，校验 APK 签名后才发布。
 
 重跑会更新同名 Release，先以临时名称上传 APK，检查上传状态、大小及 API 返回的 SHA-256（若有），再替换原文件。上传失败时旧 APK 保持可下载；替换过程中改名失败时会尝试恢复原文件名。若 API 故障导致恢复或清理失败，Release 中可能保留 `pending-` 或 `backup-` 开头的 APK，可在确认正式文件后清理。启用了不可变发布（Immutable releases）的 Release 无法替换附件，需要使用新的版本标签发布。
 
-Release 描述使用对应标签提交中的 UTF-8 文件 `docs/releases/<标签>.md`，不会自动附带提交标题。文件缺失或为空时工作流会停止。查看 [2.0.0 更新说明](docs/releases/v2.0.0.md)。
+Release 描述使用对应标签提交中的 UTF-8 文件 `docs/releases/<标签>.md`，不会自动附带提交标题。文件缺失或为空时工作流会停止。查看 [2.0.1 更新说明](docs/releases/v2.0.1.md)。
 
 ### 项目结构
 

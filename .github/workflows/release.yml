@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out full history
         uses: actions/checkout@v4
@@ -30,13 +30,18 @@ jobs:
         run: python3 -B -m unittest discover -s .github/scripts -p 'test_*.py' -v
       - name: Validate tag and prepare release notes
         run: python3 .github/scripts/release.py prepare
-      - name: Install Android SDK 35
+      - name: Check preinstalled Android SDK 35
         shell: bash
         run: |
-          if ! sdkmanager 'platforms;android-35' 'build-tools;35.0.0' > "$RUNNER_TEMP/cliplink-sdk.log" 2>&1; then
-            echo 'Android SDK setup failed.'
+          : "${ANDROID_HOME:?Android SDK root is not configured on the runner}"
+          test -r "$ANDROID_HOME/platforms/android-35/android.jar" || {
+            echo '::error::The runner is missing Android SDK Platform 35.'
             exit 1
-          fi
+          }
+          test -x "$ANDROID_HOME/build-tools/35.0.0/apksigner" || {
+            echo '::error::The runner is missing Android Build Tools 35.0.0 (apksigner).'
+            exit 1
+          }
       - name: Test, build, and verify signed APK
         env:
           CLIPLINK_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
@@ -55,4 +60,3 @@ jobs:
           if [ -n "${CLIPLINK_RELEASE_DIR:-}" ]; then
             rm -rf -- "$CLIPLINK_RELEASE_DIR"
           fi
-          rm -f -- "$RUNNER_TEMP/cliplink-sdk.log"

@@ -270,7 +270,7 @@ fun SettingsScreen(
                 )
                 SettingSwitchItem(
                     title = "隐藏剪贴板读取提示",
-                    subtitle = "仅隐藏本应用读取剪贴板时的系统 Toast；需要启用 Xposed 模块",
+                    subtitle = "仅隐藏本应用的系统读取提示。启用或更新 Xposed 模块后需重启手机；此后切换立即生效。",
                     checked = ui.hideClipboardReadToast == true,
                     onCheckedChange = vm::setHideClipboardReadToast,
                     enabled = ui.hideClipboardReadToast != null && !ui.savingClipboardToastPreference,

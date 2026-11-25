@@ -138,6 +138,8 @@ core/      链接与口令提取、规则匹配、打开及去重策略
 
 查看框架日志。出现 `clipboard hook unavailable` 时，请检查框架是否支持现代 Xposed API 101，以及 ROM 的剪贴板实现是否兼容。应用内开关只表示配置状态，不代表 Hook 已成功安装。
 
+如果已打开「隐藏剪贴板读取提示」但仍看到提示，先确认安装或更新后已重启手机，再检查本次启动的框架日志是否出现 `clipboard access toast hook installed`。系统加载新版 Hook 后，切换该开关无需再次重启。
+
 </details>
 
 <details>

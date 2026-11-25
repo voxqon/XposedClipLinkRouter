@@ -53,6 +53,13 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- 非导出的开关标记：系统 Hook 可读取当前用户的组件状态，无需读取应用私有文件。 -->
+        <activity-alias
+            android:name=".HideClipboardReadToast"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="false" />
+
         <!-- 点击通知后的跳板，无 UI，不需要出现在最近任务 -->
         <activity
             android:name=".service.OpenLinkActivity"

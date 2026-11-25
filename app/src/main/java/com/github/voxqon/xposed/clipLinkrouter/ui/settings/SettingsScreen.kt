@@ -83,6 +83,7 @@ import com.github.voxqon.xposed.clipLinkrouter.BuildConfig
 import com.github.voxqon.xposed.clipLinkrouter.ClipLinkApp
 import com.github.voxqon.xposed.clipLinkrouter.R
 import com.github.voxqon.xposed.clipLinkrouter.data.settings.AppSettings
+import com.github.voxqon.xposed.clipLinkrouter.data.settings.ClipboardToastPreference
 import com.github.voxqon.xposed.clipLinkrouter.data.settings.SettingsRepository
 import com.github.voxqon.xposed.clipLinkrouter.notification.NotificationHelper
 import com.github.voxqon.xposed.clipLinkrouter.ui.rules.GroupHeader
@@ -96,21 +97,35 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 data class SettingsUiState(
     val loading: Boolean = true,
     val settings: AppSettings = AppSettings(),
     val error: String? = null,
+    val hideClipboardReadToast: Boolean? = null,
+    val savingClipboardToastPreference: Boolean = false,
 )
 
 class SettingsViewModel(
     private val repo: SettingsRepository,
+    private val packageManager: PackageManager,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(SettingsUiState())
     val ui: StateFlow<SettingsUiState> = _ui.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            try {
+                val hidden = withContext(Dispatchers.IO) { ClipboardToastPreference.isHidden(packageManager) }
+                _ui.update { it.copy(hideClipboardReadToast = hidden) }
+            } catch (e: RuntimeException) {
+                if (e is CancellationException) throw e
+                _ui.update { it.copy(error = "无法读取剪贴板提示设置") }
+            }
+        }
         viewModelScope.launch {
             repo.settings
                 .catch { e -> _ui.update { it.copy(loading = false, error = e.message) } }
@@ -123,6 +138,22 @@ class SettingsViewModel(
     fun setMaxTextLength(v: Int) = updateSetting { repo.setMaxTextLength(v) }
     fun setAlwaysFallback(v: Boolean) = updateSetting { repo.setAlwaysFallbackToBrowser(v) }
     fun setKoulingEnabled(v: Boolean) = updateSetting { repo.setKoulingEnabled(v) }
+
+    fun setHideClipboardReadToast(hidden: Boolean) {
+        if (_ui.value.hideClipboardReadToast == null || _ui.value.savingClipboardToastPreference) return
+        _ui.update { it.copy(savingClipboardToastPreference = true) }
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) { ClipboardToastPreference.setHidden(packageManager, hidden) }
+                _ui.update { it.copy(hideClipboardReadToast = hidden) }
+            } catch (e: RuntimeException) {
+                if (e is CancellationException) throw e
+                _ui.update { it.copy(error = "保存剪贴板提示设置失败") }
+            } finally {
+                _ui.update { it.copy(savingClipboardToastPreference = false) }
+            }
+        }
+    }
 
     private fun updateSetting(block: suspend () -> Unit) {
         if (_ui.value.loading) return
@@ -142,7 +173,7 @@ class SettingsViewModel(
         fun factory(app: ClipLinkApp) = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                SettingsViewModel(app.settings) as T
+                SettingsViewModel(app.settings, app.packageManager) as T
         }
     }
 }
@@ -236,6 +267,13 @@ fun SettingsScreen(
                     checked = ui.settings.backgroundListening,
                     onCheckedChange = { vm.setBackgroundListening(it) },
                     enabled = !ui.loading,
+                )
+                SettingSwitchItem(
+                    title = "隐藏剪贴板读取提示",
+                    subtitle = "仅隐藏本应用读取剪贴板时的系统 Toast；需要启用 Xposed 模块",
+                    checked = ui.hideClipboardReadToast == true,
+                    onCheckedChange = vm::setHideClipboardReadToast,
+                    enabled = ui.hideClipboardReadToast != null && !ui.savingClipboardToastPreference,
                 )
 
                 // Notification Permission Status Banner
@@ -411,7 +449,7 @@ fun SettingsScreen(
                     }
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "🔒 隐私保护：不存储剪贴板明文，仅记录域名、哈希与分流结果。",
+                        text = "🔒 隐私保护：去重记录仅保存匹配摘要和时间，不保存剪贴板明文。",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                         color = MaterialTheme.colorScheme.outline,
                     )

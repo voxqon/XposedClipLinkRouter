@@ -13,6 +13,7 @@ import android.os.UserHandle
 import android.util.Log
 import com.github.voxqon.xposed.clipLinkrouter.BuildConfig
 import com.github.voxqon.xposed.clipLinkrouter.core.hook.ClipboardHookPolicy
+import com.github.voxqon.xposed.clipLinkrouter.data.settings.ClipboardToastPreference
 import com.github.voxqon.xposed.clipLinkrouter.service.ClipboardEventReceiver
 import io.github.libxposed.api.XposedInterface.HookHandle
 import io.github.libxposed.api.XposedModule
@@ -126,6 +127,56 @@ class ClipboardHook : XposedModule() {
         } catch (_: Throwable) {
             installed.forEach { it.unhook() }
             log(Log.ERROR, TAG, "clipboard hook unavailable; system behavior preserved")
+        }
+        installClipboardToastHook(param.classLoader)
+    }
+
+    private fun installClipboardToastHook(loader: ClassLoader) {
+        val installed = mutableListOf<HookHandle>()
+        try {
+            val service = loader.loadClass("com.android.server.clipboard.ClipboardService")
+            val clipboardClass = loader.loadClass(service.name + "\$Clipboard")
+            val intType = Int::class.javaPrimitiveType!!
+            val signature = listOf(String::class.java, intType, intType, clipboardClass)
+            val toastMethods = service.declaredMethods.filter {
+                it.name == "showAccessNotificationLocked" && it.returnType == Void.TYPE &&
+                    (it.parameterTypes.toList() == signature || it.parameterTypes.toList() == signature + intType)
+            }
+            check(toastMethods.isNotEmpty())
+            val getContext = service.getMethod("getContext")
+            val createContextAsUser = Context::class.java.getMethod(
+                "createContextAsUser", UserHandle::class.java, intType,
+            )
+            val clipboardImpl = loader.loadClass(service.name + "\$ClipboardImpl")
+            val readers = clipboardImpl.declaredMethods.filter {
+                it.name == "getPrimaryClip" && it.returnType == ClipData::class.java
+            }
+            check(readers.isNotEmpty())
+            readers.forEach { deoptimize(it) }
+
+            for (method in toastMethods) {
+                installed += hook(method).intercept { chain ->
+                    val uid = Binder.getCallingUid()
+                    val hidden = chain.getArg(0) == BuildConfig.APPLICATION_ID && chain.getArg(1) == uid &&
+                        chain.getArg(2) == uid / 100_000 && runCatching {
+                            val identity = Binder.clearCallingIdentity()
+                            try {
+                                val context = getContext.invoke(chain.thisObject) as Context
+                                val userContext = createContextAsUser.invoke(
+                                    context, UserHandle.getUserHandleForUid(uid), 0,
+                                ) as Context
+                                ClipboardToastPreference.isHidden(userContext.packageManager)
+                            } finally {
+                                Binder.restoreCallingIdentity(identity)
+                            }
+                        }.getOrDefault(false)
+                    if (hidden) null else chain.proceed()
+                }
+            }
+            log(Log.INFO, TAG, "clipboard access toast hook installed")
+        } catch (_: Throwable) {
+            installed.forEach { it.unhook() }
+            log(Log.WARN, TAG, "clipboard access toast hook unavailable; system toast preserved")
         }
     }
 

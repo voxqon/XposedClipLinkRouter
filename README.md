@@ -111,6 +111,8 @@ git push origin main refs/tags/v2.0.2
 
 正式版示例为 `v2.0.2`，预发布版示例为 `v2.0.3-rc.1`。标签格式为 `v主版本.次版本.修订版本`，可附加符合 SemVer 规则的 `-` 预发布后缀；不支持 `+` 构建元数据。推送标签会启动发布工作流，格式不符的标签会使工作流失败；普通分支推送不会触发发布。预发布后缀会自动设置 GitHub Pre-release。工作流先运行发布脚本回归测试、应用测试、lint 和 Release 构建，校验 APK 签名后才发布。
 
+也可以在 **Actions → Release → Run workflow** 选择 `main`，输入已有标签（如 `v2.1.0`）并运行。手动运行使用该标签的代码和发布说明构建 APK，成功后更新对应的 Release。命令行用法见 [手动运行](docs/GITHUB_ACTIONS.md#5-手动运行与重跑)。
+
 重跑会更新同名 Release，先以临时名称上传 APK，检查上传状态、大小及 API 返回的 SHA-256（若有），再替换原文件。上传失败时旧 APK 保持可下载；替换过程中改名失败时会尝试恢复原文件名。若 API 故障导致恢复或清理失败，Release 中可能保留 `pending-` 或 `backup-` 开头的 APK，可在确认正式文件后清理。启用了不可变发布（Immutable releases）的 Release 无法替换附件，需要使用新的版本标签发布。
 
 Release 描述使用对应标签提交中的 UTF-8 文件 `docs/releases/<标签>.md`，不会自动附带提交标题。文件缺失或为空时工作流会停止。查看 [2.0.1 更新说明](docs/releases/v2.0.1.md)。

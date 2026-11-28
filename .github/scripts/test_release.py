@@ -113,7 +113,7 @@ class PublishTests(unittest.TestCase):
         (self.directory / "notes.md").write_text("- A change\n", encoding="utf-8")
         self.apk = self.directory / "XposedClipLinkRouter-1.2.3.apk"
         self.apk.write_bytes(b"new verified APK")
-        env = {"CLIPLINK_RELEASE_DIR": str(self.directory), "GITHUB_REF_NAME": "v1.2.3",
+        env = {"CLIPLINK_RELEASE_DIR": str(self.directory), "CLIPLINK_RELEASE_TAG": "v1.2.3",
                "GITHUB_API_URL": "https://api.github.test", "GITHUB_REPOSITORY": "owner/repo"}
         environment = patch.dict(os.environ, env)
         environment.start()
@@ -265,7 +265,7 @@ class PrepareTests(unittest.TestCase):
         previous = Path.cwd()
         os.chdir(self.directory)
         self.addCleanup(os.chdir, previous)
-        environment = patch.dict(os.environ, {"GITHUB_REF_TYPE": "tag", "GITHUB_REF_NAME": "v1.2.3",
+        environment = patch.dict(os.environ, {"CLIPLINK_RELEASE_TAG": "v1.2.3",
                                               "RUNNER_TEMP": str(self.directory),
                                               "GITHUB_ENV": str(self.directory / "env")})
         environment.start()
@@ -316,8 +316,21 @@ class PrepareTests(unittest.TestCase):
             release.prepare()
         self.assertFalse((self.directory / "env").exists())
 
+    def test_manual_run_uses_tagged_commit_even_when_dispatched_from_main(self):
+        public_notes = "- Tagged release notes\n"
+        notes = self.commit_notes(public_notes)
+        release.git("tag", "v1.2.3")
+        notes.write_text("- Unreleased changes\n", encoding="utf-8")
+        release.git("add", "docs/releases/v1.2.3.md")
+        self.commit("Change notes on main")
+        with patch.dict(os.environ, {"GITHUB_REF_TYPE": "branch", "GITHUB_REF_NAME": "main"}):
+            with self.assertRaisesRegex(release.SafeError, "checked-out commit"):
+                release.prepare()
+            release.git("checkout", "--detach", "refs/tags/v1.2.3")
+            self.assertEqual(self.notes(), public_notes)
+
     def test_invalid_tag_fails_without_preparing_files(self):
-        with patch.dict(os.environ, {"GITHUB_REF_NAME": "v1.2.3-01"}):
+        with patch.dict(os.environ, {"CLIPLINK_RELEASE_TAG": "v1.2.3-01"}):
             with self.assertRaisesRegex(release.SafeError, "Invalid release tag"):
                 release.prepare()
         self.assertFalse((self.directory / "env").exists())

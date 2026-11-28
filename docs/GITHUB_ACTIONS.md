@@ -1,6 +1,6 @@
 # GitHub Actions 配置说明
 
-本仓库的 `Release` 工作流位于 `.github/workflows/release.yml`，推送 Git 标签后运行测试、lint、签名构建并发布 APK。普通分支推送不会发布；工作流没有手动运行入口。
+本仓库的 `Release` 工作流位于 `.github/workflows/release.yml`，推送 Git 标签后运行测试、lint、签名构建并发布 APK。普通分支推送不会发布，也可以指定已有标签手动运行工作流。
 
 ## 1. 启用 Actions
 
@@ -76,7 +76,17 @@ git push origin main refs/tags/v2.0.2
 
 在仓库 **Actions → Release** 查看运行结果。成功后在 **Releases** 下载对应的 APK。发布说明仅读取该标签提交中的同名 Markdown，不复制提交标题。说明文件缺失、不是 UTF-8 或为空时，工作流会在构建前停止。
 
-## 5. 重跑和常见错误
+## 5. 手动运行与重跑
+
+在 **Actions → Release → Run workflow** 中选择 `main`，在 `tag` 输入框填写已推送的标签，再点击 **Run workflow**。也可以使用已登录的 GitHub CLI：
+
+```sh
+gh workflow run release.yml --ref main -f tag=v2.1.0
+```
+
+工作流会从指定标签读取源码和发布说明，并发布或更新该标签对应的 Release。
+
+## 6. 常见错误
 
 - 未配置完整四个 Secrets：会显示 `Release signing configuration is incomplete.`。
 - keystore 编码错误：会显示 `Release keystore is not valid Base64.`；重新从原文件生成单行 Base64。
@@ -85,5 +95,3 @@ git push origin main refs/tags/v2.0.2
 - 上传失败：旧 APK 会保留；API 恢复后可在 Actions 中重跑失败的任务。
 - 改名或清理中断：可能保留 `pending-`、`backup-` 开头的 APK；确认正式 APK 可下载后再清理这些附件。
 - 不可变 Release：已经启用 Immutable releases 的发布不能替换 APK，必须使用新版本标签。如果需要同标签重跑并替换附件，应在发布前关闭不可变发布。
-
-没有单独配置自动更新时间、定时任务、PAT、仓库 Variables 或手动运行参数的要求。

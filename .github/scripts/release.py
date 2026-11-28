@@ -35,8 +35,8 @@ def git(*args):
 
 
 def prepare():
-    tag = os.environ["GITHUB_REF_NAME"]
-    if os.environ.get("GITHUB_REF_TYPE") != "tag" or not valid_tag(tag):
+    tag = os.environ["CLIPLINK_RELEASE_TAG"]
+    if not valid_tag(tag):
         raise SafeError("Invalid release tag; expected vMAJOR.MINOR.PATCH with an optional SemVer prerelease suffix.")
     commit = git("rev-parse", "--verify", "HEAD^{commit}").strip()
     if git("rev-parse", "--verify", "refs/tags/" + tag + "^{commit}").strip() != commit:
@@ -160,7 +160,7 @@ def upload_apk(base, release, apk):
 def publish():
     directory = Path(os.environ["CLIPLINK_RELEASE_DIR"])
     tag = (directory / "tag.txt").read_text(encoding="utf-8")
-    if not valid_tag(tag) or tag != os.environ["GITHUB_REF_NAME"]:
+    if not valid_tag(tag) or tag != os.environ["CLIPLINK_RELEASE_TAG"]:
         raise SafeError("Release tag changed during the workflow.")
     version = tag[1:]
     apk = directory / ("XposedClipLinkRouter-" + version + ".apk")
